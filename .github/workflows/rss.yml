@@ -2,8 +2,9 @@ name: Generate RSS Feeds
 
 on:
   schedule:
-    - cron: '0 * * * *'  # Her saat başı çalıştır (Sunucuyu asla yormaz, çok nazik bir aralıktır)
-  workflow_dispatch:     # İstersen manuel olarak da tetikleyebilmeni sağlar
+    - cron: '30 6 * * *'  # Türkiye saati ile 09:30 (UTC 06:30)
+    - cron: '0 14 * * *'  # Türkiye saati ile 17:00 (UTC 14:00)
+  workflow_dispatch:      # İstersen manuel olarak da tetikleyebilmeni sağlar
 
 jobs:
   build:
