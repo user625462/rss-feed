@@ -17,11 +17,6 @@ FEEDS = {
 
 TIMEZONE = pytz.timezone('Europe/Istanbul')
 
-def is_valid_image(url):
-    if not url or not isinstance(url, str):
-        return False
-    return any(ext in url.lower() for ext in ['.jpg', '.jpeg', '.png', '.gif', '.webp'])
-
 def get_full_content(item_id, item_type):
     """Her bir içeriğin detay sayfasına (GetById) gidip tam metni garantili çeker."""
     try:
@@ -29,7 +24,7 @@ def get_full_content(item_id, item_type):
         resp = requests.get(url, timeout=5)
         if resp.status_code == 200:
             data = resp.json().get('data')
-            # Liste olarak geliyorsa ilk elemanı çek 
+            # Liste olarak geliyorsa ilk elemanı çek
             if isinstance(data, list) and len(data) > 0:
                 return data[0].get(f'{item_type}Icerik')
             elif isinstance(data, dict):
@@ -63,11 +58,6 @@ def generate_rss():
                 title = item.get(f'{item_type}Baslik', 'Başlıksız')
                 ozet = item.get(f'{item_type}Ozet')
                 date_str = item.get(f'{item_type}Tarih')
-                
-                # Kapak resmi değişkenleri
-                raw_image = item.get(f'{item_type}StandartImageUrl') or item.get(f'{item_type}ThumbImageUrl')
-                if not raw_image and item_type == 'duyuru':
-                    raw_image = item.get('duyuruDosyaUrl') or item.get('kucukResim')
                     
                 link = f"https://mku.edu.tr/{'news' if item_type == 'haber' else 'announcements'}/{item_id}"
 
@@ -87,21 +77,9 @@ def generate_rss():
                 fe.title(str(title))
                 fe.link(href=link)
 
-                # KAPAK RESMİ DÜZELTMESİ (Senin bulduğun uploads/website/ linki sayesinde!)
-                image_tag = ""
-                if is_valid_image(raw_image):
-                    clean_image = str(raw_image).strip()
-                    if not clean_image.startswith('http'):
-                        if clean_image.startswith('admin/'):
-                            clean_image = 'https://files.mku.edu.tr/uploads/website/' + clean_image
-                        else:
-                            clean_image = 'https://files.mku.edu.tr/' + clean_image.lstrip('/')
-                    
-                    image_tag = f'<img src="{clean_image}" alt="{title}" style="max-width:100%; border-radius:8px; margin-bottom:15px;"/><br><br>'
-                    fe.enclosure(clean_image, 0, 'image/jpeg')
-
-                # Tüm içeriği birleştirip RSS'e bas
-                full_html = f"<div>{image_tag}{main_text}</div>"
+                # Kapak resmi eklentisi tamamen kaldırıldı. 
+                # Sadece doğrudan üniversitenin girdiği temiz metni basıyoruz.
+                full_html = f"<div>{main_text}</div>"
                 fe.description(full_html)
 
                 # Tarih İşleme
