@@ -81,7 +81,6 @@ def generate_rss():
                     title = item.get('haberBaslik', 'Başlıksız Haber')
                     icerik = item.get('haberIcerik')
                     ozet = item.get('haberOzet')
-                    # JSON'dan tespit edilen doğru resim değişkenleri
                     raw_image = item.get('haberStandartImageUrl') or item.get('haberThumbImageUrl')
                     link = f"https://mku.edu.tr/news/{item_id}"
                     date_str = item.get('haberTarih')
@@ -90,12 +89,11 @@ def generate_rss():
                     title = item.get('duyuruBaslik', 'Başlıksız Duyuru')
                     icerik = item.get('duyuruIcerik')
                     ozet = item.get('duyuruOzet')
-                    # Duyurular için tüm ihtimaller
                     raw_image = item.get('duyuruStandartImageUrl') or item.get('duyuruThumbImageUrl') or item.get('duyuruDosyaUrl') or item.get('kucukResim')
                     link = f"https://mku.edu.tr/announcements/{item_id}"
                     date_str = item.get('duyuruTarih')
 
-                # Eğer haberIcerik doluysa (HTML varsa) onu al, yoksa özeti al
+                # Metin kontrolü
                 if icerik and len(str(icerik).strip()) > 0:
                     main_text = str(icerik)
                 elif ozet and len(str(ozet).strip()) > 0:
@@ -107,17 +105,18 @@ def generate_rss():
                 fe.title(str(title))
                 fe.link(href=link)
 
-                # Kapak Resmi Etiketini Hazırla
+                # Kapak Resmi Etiketini Hazırla (URL Düzeltildi!)
                 image_tag = ""
                 if is_valid_image(raw_image):
                     clean_image = str(raw_image).strip()
                     if not clean_image.startswith('http'):
-                        clean_image = 'https://mku.edu.tr/' + clean_image.lstrip('/')
+                        # MKU'nun dosyaları tuttuğu asıl sunucu adresini ekliyoruz
+                        clean_image = 'https://files.mku.edu.tr/' + clean_image.lstrip('/')
                     
                     image_tag = f'<img src="{clean_image}" alt="{title}" style="max-width:100%; border-radius:8px; margin-bottom:15px;"/><br><br>'
                     fe.enclosure(clean_image, 0, 'image/jpeg')
 
-                # En kritik yer: Tüm HTML veriyi doğrudan Description etiketine basıyoruz!
+                # Tüm HTML veriyi doğrudan Description etiketine basıyoruz
                 full_html = f"<div>{image_tag}{main_text}</div>"
                 fe.description(full_html)
 
