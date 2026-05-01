@@ -50,7 +50,6 @@ FEEDS = {
 
 TIMEZONE = pytz.timezone('Europe/Istanbul')
 
-# Gelen URL'nin gerçekten bir resim dosyası olup olmadığını kontrol eden fonksiyon
 def is_valid_image(url):
     if not url or not isinstance(url, str):
         return False
@@ -80,52 +79,52 @@ def generate_rss():
                 if info['type'] == 'haber':
                     item_id = item.get('haberId', '')
                     title = item.get('haberBaslik', 'Başlıksız Haber')
-                    # Hiyerarşi: Önce tam içerik, yoksa özet, o da yoksa başlık
                     icerik = item.get('haberIcerik')
                     ozet = item.get('haberOzet')
-                    raw_image = item.get('haberDosyaUrl') or item.get('kucukResim')
+                    # JSON'dan tespit edilen doğru resim değişkenleri
+                    raw_image = item.get('haberStandartImageUrl') or item.get('haberThumbImageUrl')
                     link = f"https://mku.edu.tr/news/{item_id}"
+                    date_str = item.get('haberTarih')
                 else: # duyuru
                     item_id = item.get('duyuruId', '')
                     title = item.get('duyuruBaslik', 'Başlıksız Duyuru')
                     icerik = item.get('duyuruIcerik')
                     ozet = item.get('duyuruOzet')
-                    raw_image = item.get('duyuruDosyaUrl') or item.get('kucukResim')
+                    # Duyurular için tüm ihtimaller
+                    raw_image = item.get('duyuruStandartImageUrl') or item.get('duyuruThumbImageUrl') or item.get('duyuruDosyaUrl') or item.get('kucukResim')
                     link = f"https://mku.edu.tr/announcements/{item_id}"
+                    date_str = item.get('duyuruTarih')
 
-                main_text = icerik if icerik else (ozet if ozet else title)
-                short_desc = ozet if ozet else title
+                # Eğer haberIcerik doluysa (HTML varsa) onu al, yoksa özeti al
+                if icerik and len(str(icerik).strip()) > 0:
+                    main_text = str(icerik)
+                elif ozet and len(str(ozet).strip()) > 0:
+                    main_text = str(ozet)
+                else:
+                    main_text = str(title)
 
                 fe.id(str(item_id))
-                fe.title(title)
+                fe.title(str(title))
                 fe.link(href=link)
 
-                # Resim Kontrolü ve Eklemesi
+                # Kapak Resmi Etiketini Hazırla
                 image_tag = ""
                 if is_valid_image(raw_image):
                     clean_image = str(raw_image).strip()
                     if not clean_image.startswith('http'):
-                        if clean_image.startswith('/'):
-                            clean_image = 'https://mku.edu.tr' + clean_image
-                        else:
-                            clean_image = 'https://mku.edu.tr/' + clean_image
+                        clean_image = 'https://mku.edu.tr/' + clean_image.lstrip('/')
                     
-                    # RSS okuyucular için stili olan düzgün bir resim etiketi oluştur
-                    image_tag = f'<img src="{clean_image}" alt="{title}" style="max-width:100%; border-radius:8px; margin-bottom:15px;"/><br>'
+                    image_tag = f'<img src="{clean_image}" alt="{title}" style="max-width:100%; border-radius:8px; margin-bottom:15px;"/><br><br>'
                     fe.enclosure(clean_image, 0, 'image/jpeg')
 
-                # Tam HTML'i oluştur (Resim + Metin)
+                # En kritik yer: Tüm HTML veriyi doğrudan Description etiketine basıyoruz!
                 full_html = f"<div>{image_tag}{main_text}</div>"
-                
-                # RSS Okuyucularına hem düz metin özet hem de zengin HTML gövde gönderiyoruz
-                fe.description(short_desc)
-                fe.content(full_html, type='html')
+                fe.description(full_html)
 
                 # Tarih İşleme
-                date_str = item.get('haberTarih') or item.get('duyuruTarih')
                 if date_str:
                     try:
-                        dt = datetime.strptime(date_str.split('.')[0], "%Y-%m-%dT%H:%M:%S")
+                        dt = datetime.strptime(str(date_str).split('.')[0], "%Y-%m-%dT%H:%M:%S")
                         dt = TIMEZONE.localize(dt)
                         fe.pubDate(dt)
                     except Exception as e:
